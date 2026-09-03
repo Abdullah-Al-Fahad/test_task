@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    background-color: var(--color-white);
+    color: var(--color-zinc-900);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .dark body {
+    background-color: var(--color-zinc-950);
+    color: var(--color-white);
+  }
+}
