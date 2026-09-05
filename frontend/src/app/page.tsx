@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Plus, Shield, User, Server, Sun, Moon, Radio, Terminal, Cpu, ArrowRight, Lock, Check } from 'lucide-react';
+import { Activity, Plus, Shield, User, Server, Sun, Moon, Radio, Terminal, Cpu, ArrowRight, Lock, Check, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '@/store';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { fetchRequests, createRequest, login, cancelRequest, register } from '@/lib/api';
@@ -23,6 +23,7 @@ export default function Home() {
   const [loginRolePreview, setLoginRolePreview] = useState<'OPERATOR' | 'SUPERVISOR'>('OPERATOR');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   // Filter & Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -319,14 +320,23 @@ export default function Home() {
                         <Lock className="w-4 h-4" />
                       </div>
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                        className="w-full bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg pl-9 pr-10 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
                         required
                         disabled={loading}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                        tabIndex={-1}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 
