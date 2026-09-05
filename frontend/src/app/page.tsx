@@ -167,33 +167,33 @@ export default function Home() {
                     </div>
                     <div>
                       <span className="font-bold text-lg tracking-tight text-white block leading-tight">NexusFiber</span>
-                      <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">NOC Telemetry v2.4</span>
+                      <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">Support & Operations Portal</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 text-[11px] font-mono">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    LIVE NOC
+                    SYSTEM ONLINE
                   </div>
                 </div>
 
                 {/* Platform Mission Statement */}
                 <div className="space-y-3 mb-8">
                   <h2 className="text-xl font-semibold tracking-tight text-white leading-snug">
-                    Real-Time ISP Diagnostic & Telemetry Orchestration
+                    Fast, Reliable Internet Customer Support
                   </h2>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    A mission-critical network operations platform built for sub-second telemetry streaming, distributed asynchronous job dispatching, and strict role-based execution governance.
+                    A simple tool for technicians to test customer connections, fix equipment issues remotely, and track support requests as they happen.
                   </p>
                 </div>
 
-                {/* Core Architectural Pillars */}
+                {/* Core Pillars */}
                 <div className="space-y-3">
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
                     <Radio className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-zinc-200">Sub-Second WebSocket Feed</p>
+                      <p className="text-xs font-semibold text-zinc-200">Instant Live Updates</p>
                       <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
-                        Live terminal stdout/stderr execution progress streamed via Django Channels ASGI channel layers.
+                        Watch tests run and see progress live on your screen without needing to refresh the page.
                       </p>
                     </div>
                   </div>
@@ -201,9 +201,9 @@ export default function Home() {
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
                     <Cpu className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-zinc-200">Distributed Async Celery Pipeline</p>
+                      <p className="text-xs font-semibold text-zinc-200">Quick Remote Fixes</p>
                       <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
-                        Multi-worker queue processing with on-demand process revocation (<code className="text-[10px] text-zinc-300">SIGKILL</code>) for instant task cancellation.
+                        Check customer line health and update router software with a single click.
                       </p>
                     </div>
                   </div>
@@ -211,9 +211,9 @@ export default function Home() {
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
                     <Shield className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-semibold text-zinc-200">Strict RBAC & Queue Scoping</p>
+                      <p className="text-xs font-semibold text-zinc-200">Clear Team Roles</p>
                       <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
-                        Field operators manage designated subscriber lines, while supervisors monitor global network health and failure rates.
+                        Field technicians handle customer repairs, while team leads monitor the whole operation.
                       </p>
                     </div>
                   </div>
@@ -222,8 +222,8 @@ export default function Home() {
 
               {/* Left Panel Footer */}
               <div className="relative z-10 mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-                <span>PostgreSQL 15 • Redis 7</span>
-                <span>Daphne ASGI</span>
+                <span>NexusFiber Portal</span>
+                <span>Simple, Fast & Reliable</span>
               </div>
             </div>
 
@@ -275,8 +275,8 @@ export default function Home() {
                   </h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                     {authMode === 'LOGIN'
-                      ? 'Sign in to access your diagnostic dispatch terminal.'
-                      : 'Register a new operator or supervisor to test multi-user isolation.'}
+                      ? 'Sign in with your account to start managing customer requests.'
+                      : 'Create an account to test as a field technician or a team supervisor.'}
                   </p>
                 </div>
 
@@ -335,7 +335,7 @@ export default function Home() {
                     <div className="space-y-3 pt-1">
                       <div>
                         <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-                          Select Account Role
+                          Choose Account Role
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                           {/* Operator Option Card */}
@@ -351,14 +351,14 @@ export default function Home() {
                             <div className="flex items-center justify-between mb-1.5">
                               <div className="flex items-center gap-2">
                                 <Terminal className={`w-4 h-4 ${signupRole === 'OPERATOR' ? 'text-sky-500' : 'text-zinc-400'}`} />
-                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Operator</span>
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Operator (Field Tech)</span>
                               </div>
                               {signupRole === 'OPERATOR' && (
                                 <span className="w-2 h-2 rounded-full bg-sky-500" />
                               )}
                             </div>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              Field diagnostics, test execution & cancellation
+                              Runs tests and fixes customer issues directly
                             </p>
                           </button>
 
@@ -375,14 +375,14 @@ export default function Home() {
                             <div className="flex items-center justify-between mb-1.5">
                               <div className="flex items-center gap-2">
                                 <Shield className={`w-4 h-4 ${signupRole === 'SUPERVISOR' ? 'text-purple-500' : 'text-zinc-400'}`} />
-                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Supervisor</span>
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Supervisor (Team Lead)</span>
                               </div>
                               {signupRole === 'SUPERVISOR' && (
                                 <span className="w-2 h-2 rounded-full bg-purple-500" />
                               )}
                             </div>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              Global queue oversight & system health metrics
+                              Monitors the whole team and all requests
                             </p>
                           </button>
                         </div>
@@ -401,24 +401,24 @@ export default function Home() {
                           >
                             <div className="flex items-center gap-1.5 text-sky-800 dark:text-sky-300 font-semibold text-xs mb-1.5">
                               <Terminal className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                              <span>What the Operator Role Does:</span>
+                              <span>What Field Technicians (Operators) Do:</span>
                             </div>
                             <ul className="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 pl-1">
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                                <span><strong>Dispatch Tasks:</strong> Initiate Line Diagnostics, Firmware Upgrades, and ONT Provisioning.</span>
+                                <span><strong>Run Customer Tests:</strong> Check line signal health and update customer router equipment.</span>
                               </li>
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                                <span><strong>Live Terminal:</strong> Streams stdout/stderr telemetry logs in real-time.</span>
+                                <span><strong>Watch Live Progress:</strong> See test steps finish in real time with an easy progress bar.</span>
                               </li>
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                                <span><strong>Cancel Tasks:</strong> Abort active Celery tasks on-demand before completion.</span>
+                                <span><strong>Stop Any Time:</strong> Cancel a running test immediately if you need to stop.</span>
                               </li>
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                                <span><strong>Scoped Visibility:</strong> Sees only tasks dispatched by their own account.</span>
+                                <span><strong>Personal Workspace:</strong> You only see the customers you are working on to keep it simple.</span>
                               </li>
                             </ul>
                           </motion.div>
@@ -433,24 +433,24 @@ export default function Home() {
                           >
                             <div className="flex items-center gap-1.5 text-purple-800 dark:text-purple-300 font-semibold text-xs mb-1.5">
                               <Shield className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                              <span>What the Supervisor Role Does:</span>
+                              <span>What Team Leads (Supervisors) Do:</span>
                             </div>
                             <ul className="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 pl-1">
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                                <span><strong>Global Oversight:</strong> Full real-time visibility across all field operators&apos; queues.</span>
+                                <span><strong>See the Whole Team:</strong> View all customer requests started by every technician.</span>
                               </li>
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                                <span><strong>Inspect Telemetry:</strong> Monitor live stdout/stderr streams across all active dispatches.</span>
+                                <span><strong>Check Any Customer Test:</strong> Click on any request to review what happened and see results.</span>
                               </li>
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                                <span><strong>System Health:</strong> Track network failure rates, completed jobs, and queue load.</span>
+                                <span><strong>Track Team Numbers:</strong> See how many issues were resolved and watch for line trouble spots.</span>
                               </li>
                               <li className="flex items-start gap-1.5">
                                 <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                                <span><strong>Separation of Duties:</strong> Read-only governance mode (cannot create dispatches).</span>
+                                <span><strong>Team Guidance:</strong> Built for management and oversight (does not run direct tests).</span>
                               </li>
                             </ul>
                           </motion.div>
@@ -466,15 +466,15 @@ export default function Home() {
                     className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-950 rounded-lg transition-all text-sm font-semibold flex justify-center items-center gap-2 shadow-sm disabled:opacity-50"
                   >
                     {loading ? (
-                      'Authenticating...'
+                      'Signing in...'
                     ) : authMode === 'LOGIN' ? (
                       <>
-                        <span>Sign In to Terminal</span>
+                        <span>Sign In to Portal</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     ) : (
                       <>
-                        <span>Register as {signupRole === 'OPERATOR' ? 'Operator' : 'Supervisor'}</span>
+                        <span>Create {signupRole === 'OPERATOR' ? 'Operator' : 'Supervisor'} Account</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -493,9 +493,9 @@ export default function Home() {
                   <div className="mt-5 pt-4 border-t border-zinc-200 dark:border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                        ⚡ Quick Demo Access & Role Preview
+                        ⚡ Quick Demo (Click to Test)
                       </span>
-                      <span className="text-[10px] text-zinc-400">1-click switch & auto-fill</span>
+                      <span className="text-[10px] text-zinc-400">1-click test fill</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
                       <button
@@ -547,7 +547,7 @@ export default function Home() {
                           </div>
                           <span className="text-[10px] font-mono text-zinc-400">supervisor1</span>
                         </div>
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">Global oversight view</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">Team lead overview</span>
                       </button>
                     </div>
 
@@ -565,28 +565,28 @@ export default function Home() {
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-1.5 text-sky-800 dark:text-sky-300 font-semibold text-xs">
                               <Terminal className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                              <span>What the Operator Role Does:</span>
+                              <span>What Field Technicians (Operators) Do:</span>
                             </div>
                             <span className="text-[10px] font-mono text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/50 px-1.5 py-0.5 rounded">
-                              Active: operator1
+                              Demo: operator1
                             </span>
                           </div>
                           <ul className="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 pl-1">
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                              <span><strong>Dispatch Diagnostics:</strong> Line Diagnostic, Firmware Upgrade, and ONT Provisioning.</span>
+                              <span><strong>Run Customer Tests:</strong> Check line signal health and update customer router equipment.</span>
                             </li>
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                              <span><strong>Live Terminal:</strong> Streams stdout/stderr telemetry logs in real-time.</span>
+                              <span><strong>Watch Live Progress:</strong> See test steps finish in real time with an easy progress bar.</span>
                             </li>
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                              <span><strong>Cancel Tasks:</strong> Abort active Celery tasks on-demand before completion.</span>
+                              <span><strong>Stop Any Time:</strong> Cancel a running test immediately if you need to stop.</span>
                             </li>
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
-                              <span><strong>Scoped Visibility:</strong> Sees only tasks dispatched by this operator.</span>
+                              <span><strong>Personal Workspace:</strong> You only see the customers you are working on to keep it simple.</span>
                             </li>
                           </ul>
                         </motion.div>
@@ -602,28 +602,28 @@ export default function Home() {
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-1.5 text-purple-800 dark:text-purple-300 font-semibold text-xs">
                               <Shield className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                              <span>What the Supervisor Role Does:</span>
+                              <span>What Team Leads (Supervisors) Do:</span>
                             </div>
                             <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-1.5 py-0.5 rounded">
-                              Active: supervisor1
+                              Demo: supervisor1
                             </span>
                           </div>
                           <ul className="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 pl-1">
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                              <span><strong>Global Oversight:</strong> Full real-time visibility across all field operators&apos; queues.</span>
+                              <span><strong>See the Whole Team:</strong> View all customer requests started by every technician.</span>
                             </li>
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                              <span><strong>Inspect Telemetry:</strong> Monitor live stdout/stderr streams across all active dispatches.</span>
+                              <span><strong>Check Any Customer Test:</strong> Click on any request to review what happened and see results.</span>
                             </li>
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                              <span><strong>System Health:</strong> Track network failure rates, completed jobs, and queue load.</span>
+                              <span><strong>Track Team Numbers:</strong> See how many issues were resolved and watch for line trouble spots.</span>
                             </li>
                             <li className="flex items-start gap-1.5">
                               <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
-                              <span><strong>Separation of Duties:</strong> Read-only governance mode (cannot create dispatches).</span>
+                              <span><strong>Team Guidance:</strong> Built for management and oversight (does not run direct tests).</span>
                             </li>
                           </ul>
                         </motion.div>
