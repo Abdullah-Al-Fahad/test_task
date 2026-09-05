@@ -67,7 +67,7 @@ export default function Home() {
         const res = await register(username, password, signupRole);
         setAuth({ token: res.access, username: res.username, role: res.role });
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Auth error:', err);
       setAuthError(
         authMode === 'LOGIN'
@@ -107,9 +107,9 @@ export default function Home() {
       if (filterStatus !== 'ALL' && filterStatus !== 'PENDING') {
         setFilterStatus('ALL');
       }
-    } catch(err: any) {
+    } catch (err) {
       console.error('Submit error:', err);
-      const errMsg = err?.message || '';
+      const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes('3 characters')) {
         setFormError('Validation error: Customer account/name must be at least 3 characters.');
       } else {

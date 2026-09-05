@@ -21,6 +21,8 @@ export function useWebSocket() {
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const connectRef = useRef<() => void>(() => {});
+
   const connect = useCallback(() => {
     if (!token) return;
 
@@ -55,7 +57,9 @@ export function useWebSocket() {
         MAX_RECONNECT_DELAY
       );
       retryCountRef.current += 1;
-      retryTimeoutRef.current = setTimeout(connect, delay);
+      retryTimeoutRef.current = setTimeout(() => {
+        connectRef.current();
+      }, delay);
     };
 
     ws.onerror = () => {
@@ -63,6 +67,10 @@ export function useWebSocket() {
       ws.close();
     };
   }, [token, upsertRequest]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     connect();
