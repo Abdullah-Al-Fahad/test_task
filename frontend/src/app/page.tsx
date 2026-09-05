@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Plus, Shield, User, Server, Sun, Moon } from 'lucide-react';
+import { Activity, Plus, Shield, User, Server, Sun, Moon, Radio, Terminal, Cpu, ArrowRight, Lock, Check } from 'lucide-react';
 import { useStore } from '@/store';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { fetchRequests, createRequest, login, cancelRequest } from '@/lib/api';
+import { fetchRequests, createRequest, login, cancelRequest, register } from '@/lib/api';
 import RequestCard from '@/components/RequestCard';
 
 export default function Home() {
@@ -18,6 +18,8 @@ export default function Home() {
   const [formError, setFormError] = useState<string | null>(null);
   
   // Auth Form State
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+  const [signupRole, setSignupRole] = useState<'OPERATOR' | 'SUPERVISOR'>('OPERATOR');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
@@ -51,17 +53,25 @@ export default function Home() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setAuthError('');
     try {
-      const res = await login(username, password);
-      // Determine role based on username for now (in production, backend should return it)
-      const userRole = username.includes('supervisor') ? 'SUPERVISOR' : 'OPERATOR';
-      setAuth({ token: res.access, username, role: userRole });
-    } catch (err) {
-      setAuthError('Invalid username or password.');
+      if (authMode === 'LOGIN') {
+        const res = await login(username, password);
+        setAuth({ token: res.access, username: res.username || username, role: res.role });
+      } else {
+        const res = await register(username, password, signupRole);
+        setAuth({ token: res.access, username: res.username, role: res.role });
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      setAuthError(
+        authMode === 'LOGIN'
+          ? 'Invalid username or password.'
+          : 'Failed to create account. Username may already exist (password must be at least 6 characters).'
+      );
     } finally {
       setLoading(false);
     }
@@ -132,52 +142,421 @@ export default function Home() {
     <AnimatePresence mode="wait">
       {!token ? (
         <motion.div
-          key="login"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="min-h-screen bg-white dark:bg-[#0A0A0A] flex flex-col items-center justify-center p-4"
+          key="auth"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="min-h-screen bg-zinc-100 dark:bg-[#080808] flex items-center justify-center p-3 sm:p-6 lg:p-10"
         >
-          <div className="max-w-md w-full bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-white/10 p-10 rounded-lg shadow-2xl text-center">
-            <div className="w-12 h-12 bg-zinc-900 dark:bg-white rounded-md mx-auto flex items-center justify-center mb-6">
-              <Activity className="w-6 h-6 text-white dark:text-black" />
-            </div>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2 tracking-tight">NexusFiber</h1>
-            <p className="text-zinc-500 dark:text-gray-400 mb-8 text-sm">Sign in to the ISP Diagnostic Portal.</p>
+          <div className="w-full max-w-5xl bg-white dark:bg-[#0f0f11] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
             
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Username"
-                  className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
-                  required
-                  disabled={loading}
-                />
+            {/* ─── LEFT PANEL: Platform Showcase & Telemetry Hero ─── */}
+            <div className="lg:col-span-5 p-8 lg:p-10 bg-zinc-950 text-white flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-zinc-800/80">
+              {/* Radial glow effects */}
+              <div className="absolute top-0 right-0 -mr-24 -mt-24 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+
+              <div className="relative z-10">
+                {/* Brand & System Status */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white to-zinc-200 flex items-center justify-center shadow-lg shadow-white/10">
+                      <Activity className="w-5 h-5 text-zinc-950" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-lg tracking-tight text-white block leading-tight">NexusFiber</span>
+                      <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">NOC Telemetry v2.4</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 text-[11px] font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    LIVE NOC
+                  </div>
+                </div>
+
+                {/* Platform Mission Statement */}
+                <div className="space-y-3 mb-8">
+                  <h2 className="text-xl font-semibold tracking-tight text-white leading-snug">
+                    Real-Time ISP Diagnostic & Telemetry Orchestration
+                  </h2>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    A mission-critical network operations platform built for sub-second telemetry streaming, distributed asynchronous job dispatching, and strict role-based execution governance.
+                  </p>
+                </div>
+
+                {/* Core Architectural Pillars */}
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+                    <Radio className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-zinc-200">Sub-Second WebSocket Feed</p>
+                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                        Live terminal stdout/stderr execution progress streamed via Django Channels ASGI channel layers.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+                    <Cpu className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-zinc-200">Distributed Async Celery Pipeline</p>
+                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                        Multi-worker queue processing with on-demand process revocation (<code className="text-[10px] text-zinc-300">SIGKILL</code>) for instant task cancellation.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm">
+                    <Shield className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-zinc-200">Strict RBAC & Queue Scoping</p>
+                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                        Field operators manage designated subscriber lines, while supervisors monitor global network health and failure rates.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
-                  required
-                  disabled={loading}
-                />
+
+              {/* Left Panel Footer */}
+              <div className="relative z-10 mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+                <span>PostgreSQL 15 • Redis 7</span>
+                <span>Daphne ASGI</span>
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 px-4 bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-md transition-all text-sm font-medium flex justify-center items-center gap-2 disabled:opacity-50"
-              >
-                {loading ? 'Authenticating...' : 'Sign In'}
-              </button>
-            </form>
-            {authError && <p className="mt-5 text-sm text-red-500 dark:text-red-400">{authError}</p>}
+            </div>
+
+            {/* ─── RIGHT PANEL: Authentication Hub (Sign In / Register) ─── */}
+            <div className="lg:col-span-7 p-8 lg:p-10 flex flex-col justify-between bg-white dark:bg-[#0f0f11] text-zinc-900 dark:text-white">
+              
+              <div>
+                {/* Top Nav: Mode Switcher & Theme Toggle */}
+                <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/10 pb-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('LOGIN'); setAuthError(''); }}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase transition-all ${
+                        authMode === 'LOGIN'
+                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 shadow-sm'
+                          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('SIGNUP'); setAuthError(''); }}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase transition-all ${
+                        authMode === 'SIGNUP'
+                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 shadow-sm'
+                          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
+                      }`}
+                    >
+                      Register
+                    </button>
+                  </div>
+
+                  {/* Dark Mode Toggle */}
+                  <button
+                    onClick={() => setIsDark(!isDark)}
+                    className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+                    aria-label="Toggle theme"
+                  >
+                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Form Title & Context */}
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+                    {authMode === 'LOGIN' ? 'Welcome Back' : 'Create Account'}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    {authMode === 'LOGIN'
+                      ? 'Sign in to access your diagnostic dispatch terminal.'
+                      : 'Register a new operator or supervisor to test multi-user isolation.'}
+                  </p>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleAuth} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+                      Username
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400 dark:text-zinc-500">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder={authMode === 'LOGIN' ? 'e.g. operator1 or supervisor1' : 'Choose a unique username'}
+                        className="w-full bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400 dark:text-zinc-500">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ─── REGISTER MODE: Interactive Role Selector + Dynamic Explanations ─── */}
+                  {authMode === 'SIGNUP' && (
+                    <div className="space-y-3 pt-1">
+                      <div>
+                        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                          Select Account Role
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Operator Option Card */}
+                          <button
+                            type="button"
+                            onClick={() => setSignupRole('OPERATOR')}
+                            className={`p-3 rounded-xl border text-left transition-all relative ${
+                              signupRole === 'OPERATOR'
+                                ? 'bg-sky-50/50 dark:bg-sky-950/20 border-sky-500 ring-1 ring-sky-500'
+                                : 'bg-zinc-50/70 dark:bg-white/[0.02] border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <Terminal className={`w-4 h-4 ${signupRole === 'OPERATOR' ? 'text-sky-500' : 'text-zinc-400'}`} />
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Operator</span>
+                              </div>
+                              {signupRole === 'OPERATOR' && (
+                                <span className="w-2 h-2 rounded-full bg-sky-500" />
+                              )}
+                            </div>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                              Field diagnostics, test execution & cancellation
+                            </p>
+                          </button>
+
+                          {/* Supervisor Option Card */}
+                          <button
+                            type="button"
+                            onClick={() => setSignupRole('SUPERVISOR')}
+                            className={`p-3 rounded-xl border text-left transition-all relative ${
+                              signupRole === 'SUPERVISOR'
+                                ? 'bg-purple-50/50 dark:bg-purple-950/20 border-purple-500 ring-1 ring-purple-500'
+                                : 'bg-zinc-50/70 dark:bg-white/[0.02] border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <Shield className={`w-4 h-4 ${signupRole === 'SUPERVISOR' ? 'text-purple-500' : 'text-zinc-400'}`} />
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Supervisor</span>
+                              </div>
+                              {signupRole === 'SUPERVISOR' && (
+                                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                              )}
+                            </div>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                              Global queue oversight & system health metrics
+                            </p>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ─── DYNAMIC ROLE SPECIFICATION CARD ─── */}
+                      <AnimatePresence mode="wait">
+                        {signupRole === 'OPERATOR' ? (
+                          <motion.div
+                            key="operator-desc"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.2 }}
+                            className="p-3.5 rounded-xl bg-sky-50/60 dark:bg-sky-950/25 border border-sky-200/80 dark:border-sky-800/40 text-left"
+                          >
+                            <div className="flex items-center gap-1.5 text-sky-800 dark:text-sky-300 font-semibold text-xs mb-1.5">
+                              <Terminal className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                              <span>What the Operator Role Does:</span>
+                            </div>
+                            <ul className="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 pl-1">
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
+                                <span><strong>Dispatch Tasks:</strong> Initiate Line Diagnostics, Firmware Upgrades, and ONT Provisioning.</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
+                                <span><strong>Live Terminal:</strong> Streams stdout/stderr telemetry logs in real-time.</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
+                                <span><strong>Cancel Tasks:</strong> Abort active Celery tasks on-demand before completion.</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-sky-500 mt-0.5 shrink-0" />
+                                <span><strong>Scoped Visibility:</strong> Sees only tasks dispatched by their own account.</span>
+                              </li>
+                            </ul>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="supervisor-desc"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.2 }}
+                            className="p-3.5 rounded-xl bg-purple-50/60 dark:bg-purple-950/25 border border-purple-200/80 dark:border-purple-800/40 text-left"
+                          >
+                            <div className="flex items-center gap-1.5 text-purple-800 dark:text-purple-300 font-semibold text-xs mb-1.5">
+                              <Shield className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                              <span>What the Supervisor Role Does:</span>
+                            </div>
+                            <ul className="text-[11px] text-zinc-600 dark:text-zinc-300 space-y-1 pl-1">
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
+                                <span><strong>Global Oversight:</strong> Full real-time visibility across all field operators&apos; queues.</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
+                                <span><strong>Inspect Telemetry:</strong> Monitor live stdout/stderr streams across all active dispatches.</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
+                                <span><strong>System Health:</strong> Track network failure rates, completed jobs, and queue load.</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <Check className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" />
+                                <span><strong>Separation of Duties:</strong> Read-only governance mode (cannot create dispatches).</span>
+                              </li>
+                            </ul>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-950 rounded-lg transition-all text-sm font-semibold flex justify-center items-center gap-2 shadow-sm disabled:opacity-50"
+                  >
+                    {loading ? (
+                      'Authenticating...'
+                    ) : authMode === 'LOGIN' ? (
+                      <>
+                        <span>Sign In to Terminal</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        <span>Register as {signupRole === 'OPERATOR' ? 'Operator' : 'Supervisor'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Error Banner */}
+                {authError && (
+                  <div className="mt-4 text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 p-3 rounded-lg text-left">
+                    {authError}
+                  </div>
+                )}
+
+                {/* ─── QUICK DEMO ACCESS (Sign In Mode) ─── */}
+                {authMode === 'LOGIN' && (
+                  <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-white/10">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                        ⚡ Quick Demo Access
+                      </span>
+                      <span className="text-[10px] text-zinc-400">1-click credentials</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUsername('operator1');
+                          setPassword('password123');
+                          setAuthError('');
+                        }}
+                        className="p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.02] hover:bg-zinc-100 dark:hover:bg-white/[0.05] text-left transition-colors group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-950 dark:group-hover:text-white">
+                            ⚡ Operator
+                          </span>
+                          <span className="text-[10px] font-mono text-zinc-400">operator1</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 block mt-0.5">Field technician view</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUsername('supervisor1');
+                          setPassword('password123');
+                          setAuthError('');
+                        }}
+                        className="p-2.5 rounded-lg border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.02] hover:bg-zinc-100 dark:hover:bg-white/[0.05] text-left transition-colors group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-950 dark:group-hover:text-white">
+                            ⚡ Supervisor
+                          </span>
+                          <span className="text-[10px] font-mono text-zinc-400">supervisor1</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 block mt-0.5">Global oversight view</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Auth Mode Toggle Link */}
+              <div className="pt-6 mt-4 border-t border-zinc-100 dark:border-white/5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                {authMode === 'LOGIN' ? (
+                  <span>
+                    Need to test a new account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('SIGNUP'); setAuthError(''); }}
+                      className="text-zinc-900 dark:text-white font-semibold hover:underline"
+                    >
+                      Register here
+                    </button>
+                  </span>
+                ) : (
+                  <span>
+                    Already registered?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('LOGIN'); setAuthError(''); }}
+                      className="text-zinc-900 dark:text-white font-semibold hover:underline"
+                    >
+                      Sign in here
+                    </button>
+                  </span>
+                )}
+              </div>
+
+            </div>
           </div>
         </motion.div>
       ) : (
