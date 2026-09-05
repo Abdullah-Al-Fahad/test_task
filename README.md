@@ -200,6 +200,20 @@ Dispatches a new diagnostic background task.
 Revokes the running Celery worker task via remote signal (`SIGKILL`) and transitions database status to `CANCELLED`.
 *Response:* `200 OK`
 
+### System Health & Observability
+#### `GET /api/health/`
+Public observability endpoint verifying PostgreSQL database connectivity and Redis channel layer responsiveness.
+```json
+{
+  "status": "healthy",
+  "timestamp": 1788590848.11,
+  "services": {
+    "database": "connected",
+    "redis_channels": "connected"
+  }
+}
+```
+
 ---
 
 ## ⚡ Real-Time WebSocket Events
@@ -240,14 +254,16 @@ docker compose exec backend pytest -v
 - **Service Isolation**: Scoped queries (Operator vs. Supervisor) and `select_related` validation.
 - **API Security**: Authentication boundaries, input validation, HTTP method restrictions (405 on PUT/DELETE).
 - **Cancellation Flow**: Task revocation mocking and state transitions.
+- **System Observability**: Public `/api/health/` endpoint verifying DB & Redis availability.
 
 ---
 
 ## 🏆 Bonus Considerations Implemented
-- ✅ **Automated Testing**: 100% passing Pytest suite.
+- ✅ **Automated Testing**: 100% passing Pytest suite (21 unit & integration tests).
 - ✅ **Authentication & Authorization**: Stateless SimpleJWT with custom user role enforcement.
 - ✅ **Role-Based Access Control**: Strict multi-tenant operational boundary between Operators and Supervisors.
 - ✅ **Docker Containerization**: Multi-stage, production-ready `docker-compose.yml` with health checks.
 - ✅ **CI/CD Pipeline**: GitHub Actions workflow (`.github/workflows/ci.yml`) running backend tests and frontend builds on every commit.
+- ✅ **Monitoring & Structured Logging**: Standardized timestamped console log formatters in `settings.py`, active task log streaming, and dedicated `/api/health/` service health endpoint.
 - ✅ **Advanced Search & Filtering**: Multi-condition live client-side filtering by account ID, status, and request type.
 - ✅ **Real-Time Terminal Streaming**: Live string log updates rendered inside expandable terminal consoles.
