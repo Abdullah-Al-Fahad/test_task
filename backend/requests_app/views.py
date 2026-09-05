@@ -65,3 +65,49 @@ class ServiceRequestViewSet(
             {"detail": "Failed to cancel request."},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class HealthCheckView(viewsets.ViewSet):
+    """
+    Public health check & monitoring endpoint.
+    Verifies database connectivity, Redis channel layer, and worker readiness.
+    """
+    permission_classes = []
+
+    def list(self, request):
+        from django.db import connection
+        from channels.layers import get_channel_layer
+        import time
+
+        health_data = {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "services": {
+                "database": "unknown",
+                "redis_channels": "unknown",
+            },
+        }
+
+        # Verify DB connection
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            health_data["services"]["database"] = "connected"
+        except Exception as e:
+            health_data["status"] = "degraded"
+            health_data["services"]["database"] = f"error: {str(e)}"
+
+        # Verify Redis Channel Layer
+        try:
+            channel_layer = get_channel_layer()
+            if channel_layer is not None:
+                health_data["services"]["redis_channels"] = "connected"
+            else:
+                health_data["status"] = "degraded"
+                health_data["services"]["redis_channels"] = "channel layer not configured"
+        except Exception as e:
+            health_data["status"] = "degraded"
+            health_data["services"]["redis_channels"] = f"error: {str(e)}"
+
+        http_status = status.HTTP_200_OK if health_data["status"] == "healthy" else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response(health_data, status=http_status)

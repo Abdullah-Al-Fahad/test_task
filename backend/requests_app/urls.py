@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ServiceRequestViewSet
+from .views import ServiceRequestViewSet, HealthCheckView
 
 class OptionalSlashRouter(DefaultRouter):
     def __init__(self, *args, **kwargs):
@@ -9,6 +9,7 @@ class OptionalSlashRouter(DefaultRouter):
 
 router = OptionalSlashRouter()
 router.register(r'requests', ServiceRequestViewSet, basename='requests')
+router.register(r'health', HealthCheckView, basename='health')
 
 urlpatterns = [
     path('', include(router.urls)),

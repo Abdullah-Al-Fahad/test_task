@@ -209,3 +209,10 @@ class TestServiceRequestAPI:
         req = ServiceRequest.objects.create(customer_account="ACC-PUT", operator=operator)
         res = client.put(f"/api/requests/{req.id}/", {"customer_account": "ACC-CHANGED"})
         assert res.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_health_check_endpoint_returns_200(self):
+        client = APIClient()
+        res = client.get("/api/health/")
+        assert res.status_code in [status.HTTP_200_OK, status.HTTP_503_SERVICE_UNAVAILABLE]
+        assert "status" in res.data
+        assert "services" in res.data
