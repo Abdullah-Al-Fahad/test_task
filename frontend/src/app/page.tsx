@@ -15,6 +15,7 @@ export default function Home() {
   const [requestType, setRequestType] = useState('LINE_DIAGNOSTIC');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   
   // Auth Form State
   const [username, setUsername] = useState('');
@@ -68,13 +69,25 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerAccount || !token) return;
+    setFormError(null);
+
+    const trimmed = customerAccount.trim();
+    if (!trimmed) {
+      setFormError('Please enter a customer account ID or customer name.');
+      return;
+    }
+    if (trimmed.length < 3) {
+      setFormError('Customer Account/Name must be at least 3 characters (e.g. ACC-849 or John Doe).');
+      return;
+    }
+    if (!token) return;
     
     setLoading(true);
     try {
-      const newReq = await createRequest(token, { customer_account: customerAccount, request_type: requestType });
+      const newReq = await createRequest(token, { customer_account: trimmed, request_type: requestType });
       upsertRequest(newReq);
       setCustomerAccount('');
+      setFormError(null);
       // If active filter would hide the newly created request, reset filter so user sees it immediately
       if (filterType !== 'ALL' && filterType !== requestType) {
         setFilterType('ALL');
@@ -82,9 +95,14 @@ export default function Home() {
       if (filterStatus !== 'ALL' && filterStatus !== 'PENDING') {
         setFilterStatus('ALL');
       }
-    } catch(err) {
+    } catch(err: any) {
       console.error('Submit error:', err);
-      alert('Failed to submit request.');
+      const errMsg = err?.message || '';
+      if (errMsg.includes('3 characters')) {
+        setFormError('Validation error: Customer account/name must be at least 3 characters.');
+      } else {
+        setFormError('Failed to dispatch request. Please follow format (e.g. ACC-849 or Customer Name).');
+      }
     } finally {
       setLoading(false);
     }
@@ -230,17 +248,46 @@ export default function Home() {
                       
                       <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
+                          <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Customer Account / Name
+                          </label>
                           <input
                             type="text"
                             value={customerAccount}
-                            onChange={(e) => setCustomerAccount(e.target.value)}
-                            placeholder="Customer Account (e.g. ACC-849)"
-                            className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                            onChange={(e) => {
+                              setCustomerAccount(e.target.value);
+                              if (formError) setFormError(null);
+                            }}
+                            placeholder="e.g. ACC-849 or Customer Name"
+                            className={`w-full bg-white dark:bg-[#0A0A0A] border ${
+                              formError || (customerAccount.length > 0 && customerAccount.trim().length < 3)
+                                ? 'border-amber-500 focus:ring-amber-500/30'
+                                : 'border-zinc-200 dark:border-white/10 focus:ring-zinc-400 dark:focus:ring-white/20'
+                            } rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600`}
                             required
                             disabled={loading}
                           />
+                          {customerAccount.length > 0 && customerAccount.trim().length < 3 && (
+                            <p className="text-[11px] text-amber-500 dark:text-amber-400 mt-1 flex items-center gap-1">
+                              ⚠️ Minimum 3 characters required (e.g. ACC-101 or John Doe)
+                            </p>
+                          )}
+                          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+                            Format: Account ID (e.g. ACC-849) or Customer Name
+                          </p>
                         </div>
+
+                        {formError && (
+                          <div className="p-2.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 text-xs flex items-start gap-2">
+                            <span className="font-bold">⚠️</span>
+                            <span>{formError}</span>
+                          </div>
+                        )}
+
                         <div>
+                          <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Diagnostic Operation
+                          </label>
                           <select
                             value={requestType}
                             onChange={(e) => setRequestType(e.target.value)}
@@ -313,6 +360,18 @@ export default function Home() {
                     <div className="text-center py-16 border border-dashed border-zinc-200 dark:border-white/10 rounded-lg bg-zinc-50 dark:bg-[#111111]/50">
                       <Activity className="w-8 h-8 text-zinc-400 dark:text-zinc-600 mx-auto mb-3" />
                       <p className="text-zinc-500 text-sm">No requests found matching your filters.</p>
+                      {(searchQuery || filterStatus !== 'ALL' || filterType !== 'ALL') && (
+                        <button
+                          onClick={() => {
+                            setSearchQuery('');
+                            setFilterStatus('ALL');
+                            setFilterType('ALL');
+                          }}
+                          className="mt-3 text-xs text-blue-500 dark:text-blue-400 hover:underline font-medium"
+                        >
+                          Clear filters & search query
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
