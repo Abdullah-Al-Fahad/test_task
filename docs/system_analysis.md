@@ -91,7 +91,8 @@ Growing service organizations, such as Internet Service Providers (ISPs), curren
 - **Stateless Application Servers**: Django ASGI and Next.js frontend instances are stateless and can run behind an ingress load balancer.
 - **Separation of Concerns**: Redis isolates Celery task broker queues (DB 0) from Channels pub/sub messaging (DB 1) to prevent resource contention under high volume.
 
-### 7.3 Reliability & Fault Tolerance
+### 7.3 Reliability & Availability
+- **Container Health & Auto-Recovery**: Multi-container Docker infrastructure defines health checks (`pg_isready`, `redis-cli ping`) with auto-restarts to guarantee continuous system availability.
 - **Task Acknowledgment**: Celery tasks use `acks_late=True` so if a worker crashes midway, tasks can be re-queued or safely handled.
 - **Auto-Reconnection**: The client WebSocket hook implements exponential backoff reconnection (`1s, 2s, 4s, ... 30s`) to recover automatically from intermittent network disruptions.
 - **Graceful Error Handling**: Unhandled task exceptions transition request status to `FAILED` and stream error logs rather than silently dropping out.
