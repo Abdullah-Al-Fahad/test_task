@@ -5,16 +5,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Plus, Shield, User, Server, Sun, Moon } from 'lucide-react';
 import { useStore } from '@/store';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { fetchRequests, createRequest, login } from '@/lib/api';
+import { fetchRequests, createRequest, login, cancelRequest } from '@/lib/api';
 import RequestCard from '@/components/RequestCard';
 
 export default function Home() {
   const { requests, role, token, setAuth, setRequests, upsertRequest } = useStore();
   
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [customerAccount, setCustomerAccount] = useState('');
+  const [requestType, setRequestType] = useState('LINE_DIAGNOSTIC');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  
+  // Auth Form State
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  
+  // Filter & Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterType, setFilterType] = useState('ALL');
   
   // Theme state
   const [isDark, setIsDark] = useState(true);
@@ -41,18 +50,17 @@ export default function Home() {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleDemoLogin = async (demoRole: 'OPERATOR' | 'SUPERVISOR') => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setAuthError('');
     try {
-      // In a real app we'd have a full login form, but for demo purposes
-      // we'll auto-login with hardcoded demo users. (Assumes they exist in DB)
-      const username = demoRole === 'OPERATOR' ? 'operator1' : 'supervisor1';
-      const password = 'password123'; // Demo password
       const res = await login(username, password);
-      setAuth({ token: res.access, username, role: demoRole });
+      // Determine role based on username for now (in production, backend should return it)
+      const userRole = username.includes('supervisor') ? 'SUPERVISOR' : 'OPERATOR';
+      setAuth({ token: res.access, username, role: userRole });
     } catch (err) {
-      setAuthError(`Failed to login as ${demoRole}. Did you run the Django fixtures/seed script?`);
+      setAuthError('Invalid username or password.');
     } finally {
       setLoading(false);
     }
@@ -60,15 +68,20 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !token) return;
+    if (!customerAccount || !token) return;
     
     setLoading(true);
     try {
-      const newReq = await createRequest(token, { title, description });
-      // Upsert into store (insert at top since API returns the new record)
+      const newReq = await createRequest(token, { customer_account: customerAccount, request_type: requestType });
       upsertRequest(newReq);
-      setTitle('');
-      setDescription('');
+      setCustomerAccount('');
+      // If active filter would hide the newly created request, reset filter so user sees it immediately
+      if (filterType !== 'ALL' && filterType !== requestType) {
+        setFilterType('ALL');
+      }
+      if (filterStatus !== 'ALL' && filterStatus !== 'PENDING') {
+        setFilterStatus('ALL');
+      }
     } catch(err) {
       console.error('Submit error:', err);
       alert('Failed to submit request.');
@@ -76,6 +89,25 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const handleCancel = async (id: string) => {
+    if (!token) return;
+    try {
+      await cancelRequest(token, id);
+      // We can optimistically set status to CANCELLED or rely on websocket
+    } catch(err) {
+      console.error('Cancel error:', err);
+      alert('Failed to cancel request. It might be too late.');
+    }
+  };
+
+  // ─── Filter Logic ──────────────────────────────────────────────────────────
+  const filteredRequests = requests.filter(req => {
+    if (searchQuery && !req.customer_account.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterStatus !== 'ALL' && req.status !== filterStatus) return false;
+    if (filterType !== 'ALL' && req.request_type !== filterType) return false;
+    return true;
+  });
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
@@ -93,25 +125,40 @@ export default function Home() {
             <div className="w-12 h-12 bg-zinc-900 dark:bg-white rounded-md mx-auto flex items-center justify-center mb-6">
               <Activity className="w-6 h-6 text-white dark:text-black" />
             </div>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2 tracking-tight">NexusFlow</h1>
-            <p className="text-zinc-500 dark:text-gray-400 mb-8 text-sm">Select a role to enter the demo environment.</p>
+            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-2 tracking-tight">NexusFiber</h1>
+            <p className="text-zinc-500 dark:text-gray-400 mb-8 text-sm">Sign in to the ISP Diagnostic Portal.</p>
             
-            <div className="space-y-3">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username"
+                  className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                  required
+                  disabled={loading}
+                />
+              </div>
               <button
-                onClick={() => handleDemoLogin('OPERATOR')}
+                type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-zinc-100 dark:bg-[#1A1A1A] hover:bg-zinc-200 dark:hover:bg-[#222222] text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-white/5 hover:border-zinc-300 dark:hover:border-white/10 hover:text-zinc-900 dark:hover:text-white rounded-md transition-all text-sm font-medium flex justify-center items-center gap-2 disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-md transition-all text-sm font-medium flex justify-center items-center gap-2 disabled:opacity-50"
               >
-                <User className="w-4 h-4" /> Login as Operator
+                {loading ? 'Authenticating...' : 'Sign In'}
               </button>
-              <button
-                onClick={() => handleDemoLogin('SUPERVISOR')}
-                disabled={loading}
-                className="w-full py-2.5 px-4 bg-zinc-100 dark:bg-[#1A1A1A] hover:bg-zinc-200 dark:hover:bg-[#222222] text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-white/5 hover:border-zinc-300 dark:hover:border-white/10 hover:text-zinc-900 dark:hover:text-white rounded-md transition-all text-sm font-medium flex justify-center items-center gap-2 disabled:opacity-50"
-              >
-                <Shield className="w-4 h-4" /> Login as Supervisor
-              </button>
-            </div>
+            </form>
             {authError && <p className="mt-5 text-sm text-red-500 dark:text-red-400">{authError}</p>}
           </div>
         </motion.div>
@@ -132,7 +179,7 @@ export default function Home() {
                   <Activity className="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <span className="font-semibold text-sm tracking-tight text-zinc-900 dark:text-white">
-                  NexusFlow
+                  NexusFiber
                 </span>
               </div>
               
@@ -161,7 +208,7 @@ export default function Home() {
                 {role === 'OPERATOR' ? 'Operator Portal' : 'Live Supervisor Dashboard'}
               </h1>
               <p className="text-zinc-500 text-sm">
-                {role === 'OPERATOR' ? 'Submit tasks and track your own requests.' : 'Monitoring all system activity in real-time via WebSockets.'}
+                {role === 'OPERATOR' ? 'Submit network operations and diagnostic tasks.' : 'Monitoring ISP backend operations in real-time.'}
               </p>
             </div>
 
@@ -185,22 +232,25 @@ export default function Home() {
                         <div>
                           <input
                             type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Request Title"
+                            value={customerAccount}
+                            onChange={(e) => setCustomerAccount(e.target.value)}
+                            placeholder="Customer Account (e.g. ACC-849)"
                             className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
                             required
                             disabled={loading}
                           />
                         </div>
                         <div>
-                          <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Description (optional)"
-                            className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600 min-h-[80px] resize-none"
+                          <select
+                            value={requestType}
+                            onChange={(e) => setRequestType(e.target.value)}
+                            className="w-full bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all"
                             disabled={loading}
-                          />
+                          >
+                            <option value="LINE_DIAGNOSTIC">Line Diagnostic Test</option>
+                            <option value="FIRMWARE_UPGRADE">Remote Firmware Upgrade</option>
+                            <option value="NETWORK_PROVISION">Network Provisioning</option>
+                          </select>
                         </div>
                         <button
                           type="submit"
@@ -218,17 +268,51 @@ export default function Home() {
 
               {/* List */}
               <div className={role === 'OPERATOR' ? "lg:col-span-8" : "lg:col-span-12"}>
+                
+                {/* Filters */}
+                <div className="mb-6 flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    placeholder="Search account..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1 bg-white dark:bg-[#111111] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                  />
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="bg-white dark:bg-[#111111] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="PROCESSING">Processing</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="FAILED">Failed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="bg-white dark:bg-[#111111] border border-zinc-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-white/20 transition-all"
+                  >
+                    <option value="ALL">All Types</option>
+                    <option value="LINE_DIAGNOSTIC">Line Diagnostic Test</option>
+                    <option value="FIRMWARE_UPGRADE">Remote Firmware Upgrade</option>
+                    <option value="NETWORK_PROVISION">Network Provisioning</option>
+                  </select>
+                </div>
+
                 <div className="space-y-4">
                   <AnimatePresence>
-                    {requests.map((req) => (
-                      <RequestCard key={req.id} request={req} />
+                    {filteredRequests.map((req) => (
+                      <RequestCard key={req.id} request={req} onCancel={handleCancel} />
                     ))}
                   </AnimatePresence>
                   
-                  {requests.length === 0 && (
+                  {filteredRequests.length === 0 && (
                     <div className="text-center py-16 border border-dashed border-zinc-200 dark:border-white/10 rounded-lg bg-zinc-50 dark:bg-[#111111]/50">
                       <Activity className="w-8 h-8 text-zinc-400 dark:text-zinc-600 mx-auto mb-3" />
-                      <p className="text-zinc-500 text-sm">No requests found in the system.</p>
+                      <p className="text-zinc-500 text-sm">No requests found matching your filters.</p>
                     </div>
                   )}
                 </div>
