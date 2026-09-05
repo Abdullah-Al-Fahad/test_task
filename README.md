@@ -214,6 +214,9 @@ Public observability endpoint verifying PostgreSQL database connectivity and Red
 }
 ```
 
+#### `GET /metrics`
+Prometheus open-metrics endpoint instrumented via `django-prometheus`. Exports real-time request counts by HTTP method, response status codes, p95/p99 request latencies, and database query executions.
+
 ---
 
 ## ⚡ Real-Time WebSocket Events
