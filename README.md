@@ -267,6 +267,6 @@ docker compose exec backend pytest -v
 - ✅ **Role-Based Access Control**: Strict multi-tenant operational boundary between Operators and Supervisors.
 - ✅ **Docker Containerization**: Multi-stage, production-ready `docker-compose.yml` with health checks.
 - ✅ **CI/CD Pipeline**: GitHub Actions workflow (`.github/workflows/ci.yml`) running backend tests and frontend builds on every commit.
-- ✅ **Monitoring & Structured Logging**: Standardized timestamped console log formatters in `settings.py`, active task log streaming, and dedicated `/api/health/` service health endpoint.
+- ✅ **Monitoring & Structured Logging**: Standardized timestamped console log formatters in `settings.py`, active task log streaming, dedicated `/api/health/` service health probe, and Prometheus OpenMetrics exporter (`/metrics`).
 - ✅ **Advanced Search & Filtering**: Multi-condition live client-side filtering by account ID, status, and request type.
 - ✅ **Real-Time Terminal Streaming**: Live string log updates rendered inside expandable terminal consoles.
