@@ -5,14 +5,15 @@
 
 ---
 
-## 📑 Required Deliverables & Documentation
-- 📘 **[System Analysis Document (Deliverable 1)](docs/system_analysis.md)**: Business objectives, user personas, assumptions, scope, functional requirements, and justified non-functional requirements (Performance, Scalability, Reliability, Security, Maintainability).
-- 📐 **[System Design Document (Deliverable 2)](docs/system_design.md)**: High-level architecture, component diagrams, database schema & ERD, API contracts, WebSocket communication flow, concurrency model, and technology stack justifications.
-- 📊 **[Architecture Diagrams & Visual Flows](docs/architecture_diagrams.md)**: Visual sequence diagrams, component topologies, and database entity relationships.
+## Required Deliverables & Documentation
+- **[System Analysis Document (Deliverable 1)](docs/system_analysis.md)**: Business objectives, user personas, assumptions, scope, functional requirements, and justified non-functional requirements (Performance, Scalability, Reliability, Security, Maintainability).
+- **[System Design Document (Deliverable 2)](docs/system_design.md)**: High-level architecture, component diagrams, database schema & ERD, API contracts, WebSocket communication flow, concurrency model, and technology stack justifications.
+- **[Architecture Diagrams & Visual Flows](docs/architecture_diagrams.md)**: Visual sequence diagrams, component topologies, and database entity relationships.
+- **[Comprehensive Technical Dossier (PDF)](NexusFiber_Technical_Deliverables.pdf)**: An 11-page publication-grade PDF compiling all analysis, design, and architecture documentation into a single submission-ready document.
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The system implements an event-driven, decoupled architecture ensuring that long-running operations never block client requests:
 
@@ -47,7 +48,7 @@ The system implements an event-driven, decoupled architecture ensuring that long
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technologies |
 |---|---|
@@ -56,12 +57,13 @@ The system implements an event-driven, decoupled architecture ensuring that long
 | **Authentication** | SimpleJWT (stateless Bearer tokens with role claims) |
 | **Concurrency & Queuing** | Celery 5.6, Redis 7 (prefork worker pool) |
 | **Database** | PostgreSQL 15 |
-| **DevOps & CI/CD** | Docker, Docker Compose, GitHub Actions CI Pipeline |
+| **Monitoring & Logging** | Dozzle (Real-time Container Log Tailer), Prometheus (OpenMetrics) |
+| **DevOps & CI/CD** | Docker Compose, GitHub Actions (CI + Automated SSH CD), `.env` Secrets Management |
 | **Testing** | Pytest, Pytest-Django |
 
 ---
 
-## 💡 Assumptions & Design Decisions
+## Assumptions & Design Decisions
 1. **Asynchronous Non-Blocking Execution**: Long-running diagnostic routines (line tests, firmware upgrades, provisioning) simulate real-world ISP hardware latencies. They execute strictly in Celery background workers to keep API response times under 50ms.
 2. **WebSockets Over Polling**: Live updates, completion percentages, and streaming log messages are pushed directly to clients over persistent WebSockets via Daphne ASGI and Redis Pub/Sub. No polling is used.
 3. **Stateless JWT Security**: REST endpoints use `Authorization: Bearer <token>` headers. WebSockets authenticate using token query parameters during handshake (`/ws/requests/?token=<access_token>`).
@@ -70,7 +72,7 @@ The system implements an event-driven, decoupled architecture ensuring that long
 
 ---
 
-## 🗄️ Database Setup & Migrations
+## Database Setup & Migrations
 
 The database is pre-configured to run migrations automatically upon startup in Docker. For explicit database management:
 
@@ -98,7 +100,7 @@ cd backend && python manage.py seed_demo_users
 
 ---
 
-## 🚀 Quick Start (Docker Compose)
+## Quick Start (Docker Compose)
 
 ### Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
@@ -129,7 +131,7 @@ Open your browser at **`http://localhost:3000`**.
  
 ---
  
-### 💻 Manual Run Instructions (Without Docker)
+### Manual Run Instructions (Without Docker)
 If running services directly on the host machine:
 1. **Start PostgreSQL 15 & Redis 7** services locally.
 2. **Backend**:
@@ -153,7 +155,7 @@ If running services directly on the host machine:
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 All requests must supply `Authorization: Bearer <access_token>` in the header (except `/api/token/`).
 
@@ -200,6 +202,21 @@ Dispatches a new diagnostic background task.
 Revokes the running Celery worker task via remote signal (`SIGKILL`) and transitions database status to `CANCELLED`.
 *Response:* `200 OK`
 
+#### `DELETE /api/requests/{id}/`
+Guarded deletion of finished requests (`COMPLETED`, `FAILED`, `CANCELLED`). Active tasks return `400 Bad Request`.
+*Response:* `204 No Content`
+
+#### `POST /api/requests/bulk-delete/`
+Bulk deletes finished requests by array of IDs (`{"ids": ["uuid1", "uuid2"]}`). Automatically skips active tasks and broadcasts real-time deletion events to all connected WebSocket clients.
+*Response:* `200 OK`
+```json
+{
+  "deleted_ids": ["uuid1", "uuid2"],
+  "active_skipped_count": 0,
+  "message": "Successfully deleted 2 request(s). Skipped 0 active task(s)."
+}
+```
+
 ### System Health & Observability
 #### `GET /api/health/`
 Public observability endpoint verifying PostgreSQL database connectivity and Redis channel layer responsiveness.
@@ -219,7 +236,7 @@ Prometheus open-metrics endpoint instrumented via `django-prometheus`. Exports r
 
 ---
 
-## ⚡ Real-Time WebSocket Events
+## Real-Time WebSocket Events
 
 - **Endpoint:** `ws://localhost:8000/ws/requests/?token=<access_token>`
 - **Authentication:** Token query parameter verified during the WebSocket handshake. Unauthenticated connections are rejected with code `4001`.
@@ -243,7 +260,7 @@ Prometheus open-metrics endpoint instrumented via `django-prometheus`. Exports r
 
 ---
 
-## 🧪 Automated Testing
+## Automated Testing
 
 The backend includes a comprehensive unit and integration test suite covering models, service rules, role-based authorization, cancellation logic, and N+1 query prevention.
 
@@ -261,12 +278,48 @@ docker compose exec backend pytest -v
 
 ---
 
-## 🏆 Bonus Considerations Implemented
-- ✅ **Automated Testing**: 100% passing Pytest suite (21 unit & integration tests).
-- ✅ **Authentication & Authorization**: Stateless SimpleJWT with custom user role enforcement.
-- ✅ **Role-Based Access Control**: Strict multi-tenant operational boundary between Operators and Supervisors.
-- ✅ **Docker Containerization**: Multi-stage, production-ready `docker-compose.yml` with health checks.
-- ✅ **CI/CD Pipeline**: GitHub Actions workflow (`.github/workflows/ci.yml`) running backend tests and frontend builds on every commit.
-- ✅ **Monitoring & Structured Logging**: Standardized timestamped console log formatters in `settings.py`, active task log streaming, dedicated `/api/health/` service health probe, and Prometheus OpenMetrics exporter (`/metrics`).
-- ✅ **Advanced Search & Filtering**: Multi-condition live client-side filtering by account ID, status, and request type.
-- ✅ **Real-Time Terminal Streaming**: Live string log updates rendered inside expandable terminal consoles.
+## Bonus Considerations Implemented
+- **Automated Testing**: 100% passing Pytest suite (25 unit & integration tests).
+- **Authentication & Authorization**: Stateless SimpleJWT with custom user role enforcement.
+- **Role-Based Access Control**: Strict multi-tenant operational boundary between Operators and Supervisors.
+- **Docker Containerization**: Multi-stage, production-ready `docker-compose.yml` with health checks.
+- **CI/CD Pipeline**: Two-pronged GitHub Actions workflows: `ci.yml` (backend tests & frontend builds on every commit) and `deploy.yml` (automated SSH deployment to the VPS).
+- **Interactive API Documentation**: Full OpenAPI 3 specification auto-generated via `drf-spectacular` with Swagger UI and ReDoc endpoints.
+- **Monitoring & Structured Logging**: Dozzle web dashboard for live multi-container log aggregation, dedicated `/api/health/` probe, and Prometheus OpenMetrics exporter (`/metrics`).
+- **Production Secrets**: Secure extraction of `SECRET_KEY` and PostgreSQL credentials to `.env` using Docker `env_file`.
+- **Advanced Search & Filtering**: Multi-condition live client-side filtering by account ID, status, and request type.
+- **Real-Time Terminal Streaming**: Live string log updates rendered inside expandable terminal consoles.
+
+---
+
+## API Documentation (Swagger UI)
+
+The backend provides a fully interactive OpenAPI 3 schema and documentation interfaces natively.
+
+1. **Swagger UI**: `http://177.7.36.144:8001/api/docs/swagger/` (Interactive API explorer)
+2. **ReDoc**: `http://177.7.36.144:8001/api/docs/redoc/` (Alternative documentation view)
+3. **Raw Schema**: `http://177.7.36.144:8001/api/schema/` (YAML/JSON OpenAPI schema for codegen)
+
+---
+
+## Observability & Monitoring
+
+To prove production-readiness, this project implements a complete observability stack to monitor the health and logs of the microservice architecture.
+
+### 1. Dozzle (Live Container Log Aggregation)
+Instead of forcing supervisors to SSH into the server and run `docker logs -f`, we have deployed an independent **Dozzle** container. Dozzle binds to the Docker socket as a read-only volume and provides a beautiful, real-time web interface for tailing logs across all 5 containers (Frontend, Backend, Celery, Redis, Postgres).
+
+- **Access the Dashboard:** `http://177.7.36.144:8888/`
+- **Username:** `dozzleadmin`
+- **Password:** `adminpassword`
+- **Why it matters:** It allows you to instantly see Celery workers picking up tasks from Redis, Django processing HTTP requests, and the ASGI server broadcasting WebSockets—all side-by-side in real-time. It includes regex filtering and fuzzy search.
+
+### 2. API Health Probes (`/api/health/`)
+The system exposes a dedicated, unauthenticated health endpoint used by Docker's internal `healthcheck` mechanics and external load balancers.
+- **Endpoint:** `GET /api/health/`
+- **Why it matters:** It doesn't just return a 200 OK. It actively attempts a database query and pings the Redis broker. If either the DB or Redis is down, it returns a `503 Service Unavailable`, preventing NGINX from routing traffic to a dead backend.
+
+### 3. Prometheus Metrics (`/metrics`)
+The Django backend is instrumented with `django-prometheus`.
+- **Endpoint:** `GET /metrics`
+- **Why it matters:** It exports raw OpenMetrics data detailing HTTP request latency histograms, database query execution times, and active database connection counts. In a real-world scenario, this endpoint would be scraped by a Prometheus server to generate Grafana alerting dashboards.

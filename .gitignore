@@ -43,3 +43,10 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+.env
+Assignment.pdf
+dozzle.md
+NexusFiber_Technical_Deliverables.pdf
+test_nginx_block.conf
+users.yml
+scripts/

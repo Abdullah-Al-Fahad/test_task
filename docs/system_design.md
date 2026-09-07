@@ -433,3 +433,9 @@ Instrumented via `django-prometheus` to expose full Prometheus time-series metri
 * **Error Rate:** `django_http_responses_total_by_status_total{status="200"}` vs `status="500"`
 * **Latency Histograms:** `django_http_requests_latency_seconds_by_view_method_bucket`
 * **Process Saturation:** `process_resident_memory_bytes` (~96MB RSS), `process_cpu_seconds_total`, and `python_gc_objects_collected_total`.
+
+### 9.4 Dozzle Real-Time Log Aggregation
+Deployed alongside the application containers, Dozzle mounts the Docker socket (Read-Only) to provide a zero-configuration web dashboard for live log tracing.
+* **Access URL:** `http://177.7.36.144:8888`
+* **Authentication:** Hardcoded Basic Auth via `users.yml` (Login: `dozzleadmin` / `adminpassword`)
+* **Purpose:** Allows operators to trace requests as they traverse from NGINX -> Django API -> Celery worker in real-time, eliminating the need for `docker logs -f` and direct SSH access. Includes built-in fuzzy search and regex filtering.
