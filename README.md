@@ -1,5 +1,8 @@
 # NexusFiber — Real-Time Service Request Management System
 
+🚀 **[LIVE DEMO: https://test.anchordown.app](https://test.anchordown.app)**  
+*(Fully deployed and operational. Login credentials below!)*
+
 > **Enterprise-grade, full-stack real-time diagnostic and service request management system designed for Internet Service Providers (ISPs).**  
 > Features asynchronous worker execution, persistent full-duplex WebSockets, role-based access control, task cancellation, multi-parameter search/filtering, and automated test coverage.
 
