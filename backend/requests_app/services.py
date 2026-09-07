@@ -84,3 +84,73 @@ class RequestService:
             return base_qs.all()
 
         return base_qs.filter(operator=user)
+
+    @staticmethod
+    def delete_request(req: ServiceRequest) -> bool:
+        """
+        Safely deletes a terminal request and broadcasts the removal event
+        to the Redis channel layer so connected clients sync in real time.
+        Non-terminal requests cannot be deleted to prevent Celery worker corruption.
+        """
+        if not req.is_terminal:
+            raise ValueError("Active diagnostic tasks cannot be deleted. Cancel the task first.")
+
+        req_id = str(req.id)
+        req.delete()
+
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                "requests_updates",
+                {
+                    "type": "request_deleted",
+                    "message": {"id": req_id},
+                },
+            )
+
+        logger.info("ServiceRequest id=%s deleted.", req_id)
+        return True
+
+    @staticmethod
+    def bulk_delete_requests(user, ids: list[str]) -> tuple[list[str], int]:
+        """
+        Bulk deletes terminal requests matching the given IDs and accessible
+        by the given user role. Non-terminal requests are preserved.
+        Returns a tuple of (deleted_ids, active_skipped_count).
+        """
+        user_qs = RequestService.get_requests_for_user(user).filter(id__in=ids)
+        
+        terminal_qs = user_qs.filter(status__in=[
+            ServiceRequest.Status.COMPLETED,
+            ServiceRequest.Status.FAILED,
+            ServiceRequest.Status.CANCELLED,
+        ])
+        
+        deleted_ids = [str(r.id) for r in terminal_qs]
+        active_skipped_count = user_qs.exclude(id__in=deleted_ids).count()
+        
+        if deleted_ids:
+            terminal_qs.delete()
+            
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    "requests_updates",
+                    {
+                        "type": "request_deleted",
+                        "message": {"ids": deleted_ids},
+                    },
+                )
+            logger.info(
+                "Bulk deleted %d requests for user=%s (skipped %d active).",
+                len(deleted_ids),
+                user.username,
+                active_skipped_count,
+            )
+
+        return deleted_ids, active_skipped_count
+

@@ -74,3 +74,11 @@ class RequestConsumer(AsyncWebsocketConsumer):
             "type": "update",
             "data": event["message"],
         }))
+
+    # Handler for deletion events broadcast via Redis
+    async def request_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "deleted",
+            "data": event["message"],
+        }))
+

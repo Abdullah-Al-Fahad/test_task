@@ -36,6 +36,8 @@ interface Actions {
   // Requests
   setRequests: (requests: ServiceRequest[]) => void;
   upsertRequest: (req: Partial<ServiceRequest> & { id: string; log_message?: string }) => void;
+  removeRequest: (id: string) => void;
+  removeRequests: (ids: string[]) => void;
 }
 
 type AppStore = AuthState & RequestState & Actions;
@@ -80,6 +82,25 @@ export const useStore = create<AppStore>()(
           
           const newReq = { ...partial, logs: logMsg ? [logMsg] : [] } as ServiceRequest;
           return { requests: [newReq, ...state.requests] };
+        }),
+
+      /**
+       * Removes a single request from local state by ID.
+       */
+      removeRequest: (id: string) =>
+        set((state) => ({
+          requests: state.requests.filter((r) => r.id !== id),
+        })),
+
+      /**
+       * Removes multiple requests from local state by IDs.
+       */
+      removeRequests: (ids: string[]) =>
+        set((state) => {
+          const idSet = new Set(ids);
+          return {
+            requests: state.requests.filter((r) => !idSet.has(r.id)),
+          };
         }),
     }),
     {

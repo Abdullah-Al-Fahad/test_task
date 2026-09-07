@@ -1,4 +1,5 @@
 from rest_framework import mixins, viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -12,17 +13,21 @@ class ServiceRequestViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     """
-    ViewSet for ServiceRequests. Intentionally excludes Update and Destroy
-    mixin — status transitions are owned by the system (Celery tasks), not
-    by direct HTTP mutation. This enforces the single-responsibility principle
-    on state management.
+    ViewSet for ServiceRequests.
+    Status transitions are owned by the system (Celery tasks).
+    Guarded deletion is supported: only terminal requests (COMPLETED, FAILED, CANCELLED)
+    can be deleted to preserve state machine integrity and prevent worker corruption.
 
-    GET  /api/requests/       → list (role-filtered by RequestService)
-    GET  /api/requests/<id>/  → retrieve (with object-level permission check)
-    POST /api/requests/       → create + dispatch background task
+    GET    /api/requests/              → list (role-filtered by RequestService)
+    GET    /api/requests/<id>/         → retrieve (with object-level permission check)
+    POST   /api/requests/              → create + dispatch background task
+    DELETE /api/requests/<id>/         → guarded delete (terminal states only)
+    POST   /api/requests/<id>/cancel/  → cancel in-flight task
+    POST   /api/requests/bulk-delete/  → bulk delete terminal requests
     """
 
     serializer_class = ServiceRequestSerializer
@@ -38,7 +43,9 @@ class ServiceRequestViewSet(
         req = RequestService.create_request(
             user=request.user,
             customer_account=serializer.validated_data["customer_account"],
-            request_type=serializer.validated_data["request_type"],
+            request_type=serializer.validated_data.get(
+                "request_type", ServiceRequest.RequestType.LINE_DIAGNOSTIC
+            ),
         )
 
         return Response(
@@ -46,7 +53,15 @@ class ServiceRequestViewSet(
             status=status.HTTP_201_CREATED,
         )
 
-    from rest_framework.decorators import action
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not instance.is_terminal:
+            return Response(
+                {"detail": "Active diagnostic tasks cannot be deleted. Please cancel the task first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        RequestService.delete_request(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
@@ -65,6 +80,24 @@ class ServiceRequestViewSet(
             {"detail": "Failed to cancel request."},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        ids = request.data.get("ids", [])
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "A list of request IDs is required in 'ids'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        deleted_ids, active_skipped_count = RequestService.bulk_delete_requests(
+            request.user, ids
+        )
+        return Response({
+            "deleted_ids": deleted_ids,
+            "active_skipped_count": active_skipped_count,
+            "message": f"Successfully deleted {len(deleted_ids)} request(s). Skipped {active_skipped_count} active task(s).",
+        }, status=status.HTTP_200_OK)
 
 
 class HealthCheckView(viewsets.ViewSet):

@@ -93,3 +93,25 @@ export async function cancelRequest(token: string, id: string): Promise<void> {
     token,
   });
 }
+
+export async function deleteRequest(token: string, id: string): Promise<void> {
+  return request<void>(`/api/requests/${id}/`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+export interface BulkDeleteResponse {
+  deleted_ids: string[];
+  active_skipped_count: number;
+  message: string;
+}
+
+export async function bulkDeleteRequests(token: string, ids: string[]): Promise<BulkDeleteResponse> {
+  return request<BulkDeleteResponse>('/api/requests/bulk-delete/', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ ids }),
+  });
+}
+

@@ -16,7 +16,7 @@ const MAX_RECONNECT_DELAY = 30000;
  * Only connects when a valid token is present.
  */
 export function useWebSocket() {
-  const { token, upsertRequest } = useStore();
+  const { token, upsertRequest, removeRequest, removeRequests } = useStore();
   const wsRef = useRef<WebSocket | null>(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,6 +39,12 @@ export function useWebSocket() {
         const data = JSON.parse(event.data);
         if (data.type === 'update' && data.data?.id) {
           upsertRequest(data.data);
+        } else if (data.type === 'deleted') {
+          if (data.data?.ids && Array.isArray(data.data.ids)) {
+            removeRequests(data.data.ids);
+          } else if (data.data?.id) {
+            removeRequest(data.data.id);
+          }
         }
       } catch (err) {
         console.error('[WS] Failed to parse message:', err);
@@ -66,7 +72,7 @@ export function useWebSocket() {
       // onclose will fire after onerror — reconnect logic handled there
       ws.close();
     };
-  }, [token, upsertRequest]);
+  }, [token, upsertRequest, removeRequest, removeRequests]);
 
   useEffect(() => {
     connectRef.current = connect;

@@ -198,11 +198,78 @@ class TestServiceRequestAPI:
         req.refresh_from_db()
         assert req.status == ServiceRequest.Status.CANCELLED
 
-    def test_delete_is_not_allowed(self, auth_client):
+    def test_delete_active_request_returns_400(self, auth_client):
         client, operator = auth_client
-        req = ServiceRequest.objects.create(customer_account="ACC-DEL", operator=operator)
+        req = ServiceRequest.objects.create(
+            customer_account="ACC-DEL-ACT",
+            operator=operator,
+            status=ServiceRequest.Status.PROCESSING,
+        )
         res = client.delete(f"/api/requests/{req.id}/")
-        assert res.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Active diagnostic tasks cannot be deleted" in res.data["detail"]
+        assert ServiceRequest.objects.filter(id=req.id).exists()
+
+    def test_delete_terminal_request_succeeds(self, auth_client):
+        client, operator = auth_client
+        req = ServiceRequest.objects.create(
+            customer_account="ACC-DEL-TERM",
+            operator=operator,
+            status=ServiceRequest.Status.COMPLETED,
+        )
+        res = client.delete(f"/api/requests/{req.id}/")
+        assert res.status_code == status.HTTP_204_NO_CONTENT
+        assert not ServiceRequest.objects.filter(id=req.id).exists()
+
+    def test_operator_cannot_delete_other_operator_request(self, auth_client, supervisor):
+        client, operator = auth_client
+        other_req = ServiceRequest.objects.create(
+            customer_account="ACC-OTHER",
+            operator=supervisor,
+            status=ServiceRequest.Status.COMPLETED,
+        )
+        res = client.delete(f"/api/requests/{other_req.id}/")
+        assert res.status_code == status.HTTP_404_NOT_FOUND
+        assert ServiceRequest.objects.filter(id=other_req.id).exists()
+
+    def test_supervisor_can_delete_any_terminal_request(self, sup_client, operator):
+        client, supervisor = sup_client
+        op_req = ServiceRequest.objects.create(
+            customer_account="ACC-OP-TERM",
+            operator=operator,
+            status=ServiceRequest.Status.CANCELLED,
+        )
+        res = client.delete(f"/api/requests/{op_req.id}/")
+        assert res.status_code == status.HTTP_204_NO_CONTENT
+        assert not ServiceRequest.objects.filter(id=op_req.id).exists()
+
+    def test_bulk_delete_endpoint(self, auth_client):
+        client, operator = auth_client
+        r1 = ServiceRequest.objects.create(
+            customer_account="ACC-BULK-1",
+            operator=operator,
+            status=ServiceRequest.Status.COMPLETED,
+        )
+        r2 = ServiceRequest.objects.create(
+            customer_account="ACC-BULK-2",
+            operator=operator,
+            status=ServiceRequest.Status.FAILED,
+        )
+        r3_active = ServiceRequest.objects.create(
+            customer_account="ACC-BULK-3",
+            operator=operator,
+            status=ServiceRequest.Status.PROCESSING,
+        )
+
+        res = client.post("/api/requests/bulk-delete/", {
+            "ids": [str(r1.id), str(r2.id), str(r3_active.id)]
+        }, format="json")
+
+        assert res.status_code == status.HTTP_200_OK
+        assert len(res.data["deleted_ids"]) == 2
+        assert res.data["active_skipped_count"] == 1
+        assert not ServiceRequest.objects.filter(id__in=[r1.id, r2.id]).exists()
+        assert ServiceRequest.objects.filter(id=r3_active.id).exists()
 
     def test_put_is_not_allowed(self, auth_client):
         client, operator = auth_client

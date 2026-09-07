@@ -2,20 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Plus, Shield, User, Server, Sun, Moon, Radio, Terminal, Cpu, ArrowRight, Lock, Check, Eye, EyeOff } from 'lucide-react';
+import { Activity, Plus, Shield, User, Server, Sun, Moon, Radio, Terminal, Cpu, ArrowRight, Lock, Check, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useStore } from '@/store';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { fetchRequests, createRequest, login, cancelRequest, register } from '@/lib/api';
+import { fetchRequests, createRequest, login, cancelRequest, register, deleteRequest, bulkDeleteRequests } from '@/lib/api';
 import RequestCard from '@/components/RequestCard';
 
 export default function Home() {
-  const { requests, role, token, setAuth, setRequests, upsertRequest } = useStore();
+  const { requests, role, token, setAuth, setRequests, upsertRequest, removeRequest, removeRequests } = useStore();
   
   const [customerAccount, setCustomerAccount] = useState('');
   const [requestType, setRequestType] = useState('LINE_DIAGNOSTIC');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Selection & Bulk Delete State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
   
   // Auth Form State
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
@@ -124,10 +129,64 @@ export default function Home() {
     if (!token) return;
     try {
       await cancelRequest(token, id);
-      // We can optimistically set status to CANCELLED or rely on websocket
+      // Status transition will be pushed via WebSocket
     } catch(err) {
       console.error('Cancel error:', err);
       alert('Failed to cancel request. It might be too late.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!token) return;
+    try {
+      await deleteRequest(token, id);
+      removeRequest(id);
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete request. Active tasks cannot be deleted.');
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    const target = requests.find((r) => r.id === id);
+    if (target && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(target.status)) {
+      return;
+    }
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const terminalRequests = filteredRequests.filter((r) =>
+      ['COMPLETED', 'FAILED', 'CANCELLED'].includes(r.status)
+    );
+    if (terminalRequests.length === 0) return;
+    if (selectedIds.length === terminalRequests.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(terminalRequests.map((r) => r.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!token || selectedIds.length === 0) return;
+    setIsDeletingBulk(true);
+    setBulkNotice(null);
+    try {
+      const res = await bulkDeleteRequests(token, selectedIds);
+      removeRequests(res.deleted_ids);
+      setSelectedIds([]);
+      if (res.active_skipped_count > 0) {
+        setBulkNotice(`Deleted ${res.deleted_ids.length} completed/cancelled request(s). Skipped ${res.active_skipped_count} active in-flight task(s).`);
+        setTimeout(() => setBulkNotice(null), 6000);
+      }
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      alert('Failed to bulk delete requests.');
+    } finally {
+      setIsDeletingBulk(false);
     }
   };
 
@@ -842,10 +901,64 @@ export default function Home() {
                   </select>
                 </div>
 
+                {/* Select All & Summary sub-bar */}
+                {filteredRequests.length > 0 && (
+                  <div className="mb-3 flex items-center justify-between text-xs text-zinc-500 px-1">
+                    {filteredRequests.some(r => ['COMPLETED', 'FAILED', 'CANCELLED'].includes(r.status)) ? (
+                      <button
+                        type="button"
+                        onClick={handleSelectAll}
+                        className="flex items-center gap-1.5 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                      >
+                        {(() => {
+                          const terminalCount = filteredRequests.filter(r => ['COMPLETED', 'FAILED', 'CANCELLED'].includes(r.status)).length;
+                          const isAllSelected = terminalCount > 0 && selectedIds.length === terminalCount;
+                          return (
+                            <>
+                              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${
+                                isAllSelected
+                                  ? 'bg-blue-600 border-blue-600 text-white'
+                                  : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900'
+                              }`}>
+                                {isAllSelected && (
+                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                )}
+                              </span>
+                              <span>
+                                {isAllSelected
+                                  ? 'Deselect All'
+                                  : `Select All Finished (${terminalCount})`}
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </button>
+                    ) : (
+                      <span className="text-zinc-400 dark:text-zinc-600 text-[11px] italic">
+                        Active tasks cannot be deleted
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {bulkNotice && (
+                  <div className="mb-3 px-3 py-2 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-md">
+                    {bulkNotice}
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <AnimatePresence>
                     {filteredRequests.map((req) => (
-                      <RequestCard key={req.id} request={req} onCancel={handleCancel} />
+                      <RequestCard
+                        key={req.id}
+                        request={req}
+                        onCancel={handleCancel}
+                        onDelete={handleDelete}
+                        isSelected={selectedIds.includes(req.id)}
+                        onToggleSelect={handleToggleSelect}
+                        isSelectionMode={selectedIds.length > 0}
+                      />
                     ))}
                   </AnimatePresence>
                   
@@ -870,6 +983,39 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
+            {/* Floating Bulk Action Bar */}
+            <AnimatePresence>
+              {selectedIds.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 40 }}
+                  className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-zinc-900/95 dark:bg-[#18181B]/95 backdrop-blur-md border border-zinc-700/80 dark:border-zinc-700 px-5 py-3 rounded-full shadow-2xl text-white text-xs font-medium"
+                >
+                  <span>
+                    <span className="text-blue-400 font-semibold">{selectedIds.length}</span> request(s) selected
+                  </span>
+                  <div className="h-4 w-px bg-zinc-700" />
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    disabled={isDeletingBulk}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-full transition-colors shadow"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {isDeletingBulk ? 'Deleting...' : 'Delete Selected'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds([])}
+                    className="text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </main>
         </motion.div>
       )}
