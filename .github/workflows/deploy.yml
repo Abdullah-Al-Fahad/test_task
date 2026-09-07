@@ -21,10 +21,12 @@ jobs:
             echo "Starting Continuous Deployment..."
             cd /opt/nexusfiber_new
             
-            echo "Pulling latest code from main branch..."
-            git pull origin main
+            echo "Syncing repository to latest main branch..."
+            git fetch origin main
+            git reset --hard origin/main
             
             echo "Rebuilding and restarting containers..."
-            docker compose up -d --build
+            docker compose build --no-cache frontend
+            docker compose up -d
             
             echo "Deployment successful!"
