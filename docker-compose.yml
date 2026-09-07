@@ -4,10 +4,9 @@ services:
   db:
     image: postgres:15-alpine
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_DB: core_db
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -35,21 +34,13 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      - SECRET_KEY=docker-secret-key-change-in-production
-      - DEBUG=True
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
-      - DATABASE_URL=postgres://admin:password@db:5432/core_db
-      - REDIS_HOST=redis
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    env_file: .env
 
   celery:
     build:
@@ -63,22 +54,29 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      - SECRET_KEY=docker-secret-key-change-in-production
-      - DEBUG=True
-      - DATABASE_URL=postgres://admin:password@db:5432/core_db
-      - REDIS_HOST=redis
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file: .env
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - backend
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./users.yml:/data/users.yml:ro
+    ports:
+      - "8888:8080"
+    environment:
+      - DOZZLE_AUTH_PROVIDER=simple
+      - DOZZLE_FILTER=name=(backend|celery)
 
 volumes:
   postgres_data:
