@@ -288,7 +288,7 @@ export default function Home() {
             </div>
 
             {/* ─── RIGHT PANEL: Authentication Hub (Sign In / Register) ─── */}
-            <div className="lg:col-span-7 p-8 lg:p-10 flex flex-col justify-between bg-white dark:bg-[#0f0f11] text-zinc-900 dark:text-white">
+            <div className="lg:col-span-7 p-5 sm:p-8 lg:p-10 flex flex-col justify-between bg-white dark:bg-[#0f0f11] text-zinc-900 dark:text-white">
               
               <div>
                 {/* Top Nav: Mode Switcher & Theme Toggle */}
@@ -419,11 +419,13 @@ export default function Home() {
                           >
                             <div className="flex items-center justify-between mb-1.5">
                               <div className="flex items-center gap-2">
-                                <Terminal className={`w-4 h-4 ${signupRole === 'OPERATOR' ? 'text-sky-500' : 'text-zinc-400'}`} />
-                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Operator (Field Tech)</span>
+                                <Terminal className={`w-4 h-4 shrink-0 ${signupRole === 'OPERATOR' ? 'text-sky-500' : 'text-zinc-400'}`} />
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-white leading-snug">
+                                  Operator <span className="text-[10px] text-zinc-400 font-normal block sm:inline">(Field Tech)</span>
+                                </span>
                               </div>
                               {signupRole === 'OPERATOR' && (
-                                <span className="w-2 h-2 rounded-full bg-sky-500" />
+                                <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
                               )}
                             </div>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -443,11 +445,13 @@ export default function Home() {
                           >
                             <div className="flex items-center justify-between mb-1.5">
                               <div className="flex items-center gap-2">
-                                <Shield className={`w-4 h-4 ${signupRole === 'SUPERVISOR' ? 'text-purple-500' : 'text-zinc-400'}`} />
-                                <span className="font-semibold text-xs text-zinc-900 dark:text-white">Supervisor (Team Lead)</span>
+                                <Shield className={`w-4 h-4 shrink-0 ${signupRole === 'SUPERVISOR' ? 'text-purple-500' : 'text-zinc-400'}`} />
+                                <span className="font-semibold text-xs text-zinc-900 dark:text-white leading-snug">
+                                  Supervisor <span className="text-[10px] text-zinc-400 font-normal block sm:inline">(Team Lead)</span>
+                                </span>
                               </div>
                               {signupRole === 'SUPERVISOR' && (
-                                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                                <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
                               )}
                             </div>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -562,11 +566,11 @@ export default function Home() {
                   <div className="mt-5 pt-4 border-t border-zinc-200 dark:border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                        ⚡ Quick Demo (Click to Test)
+                        Quick Demo (Click to Test)
                       </span>
                       <span className="text-[10px] text-zinc-400">1-click test fill</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -575,22 +579,27 @@ export default function Home() {
                           setLoginRolePreview('OPERATOR');
                           setAuthError('');
                         }}
-                        className={`p-2.5 rounded-xl border text-left transition-all relative ${
+                        className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                           loginRolePreview === 'OPERATOR'
                             ? 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-500 ring-1 ring-sky-500'
                             : 'border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.02] hover:bg-zinc-100 dark:hover:bg-white/[0.05]'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <Terminal className={`w-3.5 h-3.5 ${loginRolePreview === 'OPERATOR' ? 'text-sky-500' : 'text-zinc-400'}`} />
-                            <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200">
-                              ⚡ Operator
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Terminal className={`w-3.5 h-3.5 shrink-0 ${loginRolePreview === 'OPERATOR' ? 'text-sky-500' : 'text-zinc-400'}`} />
+                            <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 truncate">
+                              Operator
                             </span>
                           </div>
-                          <span className="text-[10px] font-mono text-zinc-400">operator1</span>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight">
+                            Field technician view
+                          </p>
                         </div>
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">Field technician view</span>
+                        <div className="mt-2.5 pt-1.5 border-t border-zinc-200/70 dark:border-white/5 flex items-center justify-between">
+                          <span className="text-[9px] uppercase tracking-wider font-semibold text-zinc-400">Demo</span>
+                          <span className="text-[10px] font-mono font-medium text-sky-600 dark:text-sky-400">operator1</span>
+                        </div>
                       </button>
 
                       <button
@@ -601,22 +610,27 @@ export default function Home() {
                           setLoginRolePreview('SUPERVISOR');
                           setAuthError('');
                         }}
-                        className={`p-2.5 rounded-xl border text-left transition-all relative ${
+                        className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                           loginRolePreview === 'SUPERVISOR'
                             ? 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-500 ring-1 ring-purple-500'
                             : 'border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.02] hover:bg-zinc-100 dark:hover:bg-white/[0.05]'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <Shield className={`w-3.5 h-3.5 ${loginRolePreview === 'SUPERVISOR' ? 'text-purple-500' : 'text-zinc-400'}`} />
-                            <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200">
-                              ⚡ Supervisor
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Shield className={`w-3.5 h-3.5 shrink-0 ${loginRolePreview === 'SUPERVISOR' ? 'text-purple-500' : 'text-zinc-400'}`} />
+                            <span className="font-semibold text-xs text-zinc-800 dark:text-zinc-200 truncate">
+                              Supervisor
                             </span>
                           </div>
-                          <span className="text-[10px] font-mono text-zinc-400">supervisor1</span>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight">
+                            Team lead overview
+                          </p>
                         </div>
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">Team lead overview</span>
+                        <div className="mt-2.5 pt-1.5 border-t border-zinc-200/70 dark:border-white/5 flex items-center justify-between">
+                          <span className="text-[9px] uppercase tracking-wider font-semibold text-zinc-400">Demo</span>
+                          <span className="text-[10px] font-mono font-medium text-purple-600 dark:text-purple-400">supervisor1</span>
+                        </div>
                       </button>
                     </div>
 
