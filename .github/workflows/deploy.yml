@@ -26,7 +26,7 @@ jobs:
             git reset --hard origin/main
             
             echo "Rebuilding and restarting containers..."
-            docker compose build --no-cache frontend
+            docker compose build --no-cache backend frontend
             docker compose up -d
             
             echo "Deployment successful!"
