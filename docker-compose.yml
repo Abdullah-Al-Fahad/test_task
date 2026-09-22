@@ -28,6 +28,8 @@ services:
     build: https://github.com/Abdullah-Al-Fahad/task2-spring-webflux.git#main
     environment:
       SERVER_PORT: 8000
+      SPRING_R2DBC_URL: r2dbc:postgresql://db:5432/core_db
+      SPRING_DATA_REDIS_HOST: redis
     ports:
       - "8001:8000"
     depends_on:
