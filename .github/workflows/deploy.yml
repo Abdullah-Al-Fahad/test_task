@@ -29,4 +29,8 @@ jobs:
             docker compose build --no-cache backend frontend
             docker compose up -d
             
+            echo "Waiting for backend to initialize..."
+            sleep 10
+            docker compose logs backend
+            
             echo "Deployment successful!"
